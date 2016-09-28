@@ -1,2 +1,2 @@
-# PPPoEPerf
-It is performance test tool for PPPoE server
+# pppoe_perf
+The PPPoE server performance test tool.

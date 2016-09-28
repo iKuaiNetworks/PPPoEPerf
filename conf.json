@@ -1,0 +1,15 @@
+{
+	"interface"  : "eth0",
+	"duration"   : 1000,
+	"padi-cnt"   : 1000,
+	"period"     : 60,
+	"log"        : "error",
+	"login-rate" : 100,
+
+	"account":{
+		"fgao_test"  :  "fgao123",
+		"zhang_test" :  "zhang_test",
+		"yang"       :  "yang",
+		"yang1"      :  "yang1"
+	}
+}
