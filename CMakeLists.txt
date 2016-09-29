@@ -19,7 +19,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(OPENSSL_USE_STATIC_LIBS on)
 
 find_package (Threads REQUIRED)
-find_package (Boost REQUIRED COMPONENTS program_options regex system log_setup log random)
+find_package (Boost REQUIRED COMPONENTS program_options regex system log_setup log random thread)
 find_package (OpenSSL REQUIRED COMPONENTS crypo)
 
 if((Boost_FOUND)AND(OPENSSL_FOUND))
