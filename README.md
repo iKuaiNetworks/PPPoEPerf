@@ -66,4 +66,7 @@ Allow options:
    
 ## 
 Author: Xiaopei Feng                                                                                                                                                                          
-Contact me: xpfeng@ikuai8.com    
+Contact me: xpfeng@ikuai8.com  
+Copyright(C) 2016  ikuai8.com   
+PPPoEPerf software is distributed under GPL3 license and includes contributions from numberous individuals and organizations. Please see the COPYING and CONTRIBUTORS files for details.  
+ 
