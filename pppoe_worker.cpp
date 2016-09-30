@@ -797,12 +797,12 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char * data, unsigned int size
 	}
 
 	if (pkt->ver_ != PPPOE_DISC_VER) {
-		PPP_LOG(error) << "PPPoEWorker invalid version :" << pkt->ver_;
+		PPP_LOG(error) << "PPPoEWorker invalid version :" << static_cast<uint8_t>(pkt->ver_);
 		stats->invalid_disc_pkt_++;
 		return false;
 	}
 	if (pkt->type_ != PPPOE_DISC_TYPE) {
-		PPP_LOG(error) << "PPPoEWorker invalid type:" << pkt->type_;
+		PPP_LOG(error) << "PPPoEWorker invalid type:" << static_cast<uint8_t>(pkt->type_);
 		stats->invalid_disc_pkt_++;
 		return false;
 	}
@@ -884,9 +884,9 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char * data, unsigned int size
 
 			pkt->session_id_ = ntohs(pkt->session_id_);
 			pkt->length_ = ntohs(pkt->length_);
-			PPP_LOG(info) << "PPPoEWorker receive session id " << pkt->session_id_;
+			PPP_LOG(info) << "PPPoEWorker receive session id " << static_cast<uint16_t>(pkt->session_id_);
 			if (pkt->length_ > tag_size) {
-				PPP_LOG(error) << "PPPoEWorker receive invalid length " << pkt->length_;
+				PPP_LOG(error) << "PPPoEWorker receive invalid length " << static_cast<uint16_t>(pkt->length_);
 				stats->invalid_pads_++;
 				return false;
 			}
@@ -912,7 +912,7 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char * data, unsigned int size
 			valid_sid_.insert(pkt->session_id_);
 			if (test_config->terminate_) {
 				if (send_padt(server.svc_mac_, pkt->session_id_)) {
-					PPP_LOG(info) << "PPPoEWorker send padt with sid " << pkt->session_id_;
+					PPP_LOG(info) << "PPPoEWorker send padt with sid " << static_cast<uint16_t>(pkt->session_id_);
 					stats->padt_send_ok_++;
 				} else {
 					stats->padt_send_fail_++;
@@ -923,7 +923,7 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char * data, unsigned int size
 			stats->padt_rcv_++;
 			if (pkt->session_id_ == 0) {
 				PPP_LOG(error) << "PPPoEWorker receive padt with invalid session id "
-                                               << "session id: " << pkt->session_id_;
+                                               << "session id: " << static_cast<uint16_t>(pkt->session_id_);
 				stats->invalid_padt_++;
 				return false;
 			}
@@ -935,7 +935,7 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char * data, unsigned int size
 
 			if (valid_sid_.find(pkt->session_id_) == valid_sid_.end()) {
 				PPP_LOG(error) << "PPPoEWorker receive padt session id not found "
-		                               << "session id: " << pkt->session_id_;
+		                               << "session id: " << static_cast<uint16_t>(pkt->session_id_);
 				stats->invalid_padt_++;
 				return false;
 			}
@@ -943,12 +943,12 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char * data, unsigned int size
 			pkt->length_ = ntohs(pkt->length_);
 			if (pkt->length_ > tag_size) {
 				PPP_LOG(error) << "PPPoEWorker receive padt with invalid tag"
-					       << "session id: " << pkt->session_id_;
+					       << "session id: " << static_cast<uint16_t>(pkt->session_id_);
 				stats->invalid_padt_++;
 				return false;
 			}
 			PPP_LOG(info) << "PPPoEWorker receive padt response "
-				      << "session id: " << pkt->session_id_;
+				      << "session id: " << static_cast<uint16_t>(pkt->session_id_);
 			stats->valid_padt_++;
 			valid_sid_.erase(pkt->session_id_);
 			if (active_padt_.find(pkt->session_id_) != active_padt_.end()) {
@@ -1334,7 +1334,7 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 		switch (lp->code_) {
 			case LCP_CODE_CONFIG_REQ:
 				PPP_LOG(info) << "PPPoEWorker receive LCP config request sid "
-					      << pkt->session_id_;
+					      << static_cast<uint16_t>(pkt->session_id_);
 				stats->lcp_config_req_rcv_++;
 				if (lp->len_ > data_size) {
 					PPP_LOG(error) << "PPPoEWorker receive lcp invalid data size";
@@ -1351,7 +1351,7 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 				if (send_lcp_config_ack(frame->src_, pkt->session_id_, lp->id_, opt_list)) {
 					stats->lcp_config_ack_send_ok_++;
 					PPP_LOG(info) << "PPPoEWorker send lcp config ack with sid "
-						      << pkt->session_id_;
+						      << static_cast<uint16_t>(pkt->session_id_);
 				} else {
 					stats->lcp_config_ack_send_fail_++;
 				}
@@ -1359,26 +1359,26 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 				if (send_lcp_config_req(frame->src_, pkt->session_id_)) {
 					stats->lcp_config_req_send_ok_++;
 					PPP_LOG(info) << "PPPoEWorker send lcp config req with sid "
-						      << pkt->session_id_;
+						      << static_cast<uint16_t>(pkt->session_id_);
 				} else {
 					stats->lcp_config_req_send_fail_++;
 				}
 				set_ppp_auth_method(pkt->session_id_, opt_list);
 				PPP_LOG(trace) << "PPPoEWorker insert timeout to list with sid "
-					       << pkt->session_id_;
+					       << static_cast<uint16_t>(pkt->session_id_);
 				insert_expired_event(pkt->session_id_, test_config->resend_timeout_);
 				break;
 			case LCP_CODE_CONFIG_ACK:
 				stats->lcp_config_ack_rcv_++;
 				if (!is_valid_session(pkt->session_id_, PPP_STATUS_CONFIG_REQUEST)) {
 					PPP_LOG(error) << "PPPoEWorker receive lcp config ack with invalid sid "
-						       << pkt->session_id_;
+						       << static_cast<uint16_t>(pkt->session_id_);
 					stats->invalid_lcp_config_ack_++;
 					remove_expired_event(pkt->session_id_);
 					return false;
 				}
 				PPP_LOG(info) << "PPPoEWorker receive lcp config ack with sid "
-					      << pkt->session_id_;
+					      << static_cast<uint16_t>(pkt->session_id_);
 				stats->valid_lcp_config_ack_++;
 				remove_expired_event(pkt->session_id_);
 				set_ppp_entry_status(pkt->session_id_, PPP_STATUS_CONFIG_ACK);
@@ -1387,38 +1387,38 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 				stats->lcp_echo_reqeust_rcv_++;
 				if (!is_valid_session(pkt->session_id_)) {
 					PPP_LOG(error) << "PPPoEWorker receive lcp echo with invalid sid "
-						       << pkt->session_id_;
+						       << static_cast<uint16_t>(pkt->session_id_);
 					stats->invalid_lcp_echo_request_++;
 					return false;
 				}
 				stats->valid_lcp_echo_request_++;
-				PPP_LOG(info) << "PPPoEWorker receive lcp echo with sid " << pkt->session_id_;
+				PPP_LOG(info) << "PPPoEWorker receive lcp echo with sid " << static_cast<uint16_t>(pkt->session_id_);
 
 				opt_data = reinterpret_cast<unsigned char *>(lp+1);
 				if (send_lcp_echo_reply(frame->src_, pkt->session_id_, lp->id_)) {
-					PPP_LOG(info) << "PPPoEWorker send lcp echo reply with sid " << pkt->session_id_;
+					PPP_LOG(info) << "PPPoEWorker send lcp echo reply with sid " << static_cast<uint16_t>(pkt->session_id_);
 					stats->lcp_echo_reply_send_ok_++;
 				} else {
 					stats->lcp_echo_reply_send_fail_++;
-					PPP_LOG(error) << "PPPoEWorker send lcp echo failed" << pkt->session_id_;
+					PPP_LOG(error) << "PPPoEWorker send lcp echo failed" << static_cast<uint16_t>(pkt->session_id_);
 				}
 				break;
 			case LCP_CODE_CONFIG_REJ:
-				PPP_LOG(error) << "PPPoEWorker " << pkt->session_id_ << " receive lcp config rej";
+				PPP_LOG(error) << "PPPoEWorker " << static_cast<uint16_t>(pkt->session_id_) << " receive lcp config rej";
 				break;
 			case LCP_CODE_TERM_REQ:
-				PPP_LOG(error) << "PPPoEWorker " << pkt->session_id_ << " receive lcp term reqest";
+				PPP_LOG(error) << "PPPoEWorker " << static_cast<uint16_t>(pkt->session_id_) << " receive lcp term reqest";
 				do_cancel(pkt->session_id_);
 				break;
 			case LCP_CODE_TERM_ACK:
-				PPP_LOG(error) << "PPPoEWorker " << pkt->session_id_ << " receive lcp term ack";
+				PPP_LOG(error) << "PPPoEWorker " << static_cast<uint16_t>(pkt->session_id_) << " receive lcp term ack";
 				do_cancel(pkt->session_id_);
 				break;
 			case LCP_CODE_PROTO_REJ:
-				PPP_LOG(error) << "PPPoEWorker " << pkt->session_id_ << " receive lcp proto rej";
+				PPP_LOG(error) << "PPPoEWorker " << static_cast<uint16_t>(pkt->session_id_) << " receive lcp proto rej";
 				break;
 			case LCP_CODE_DISA_REQ:
-				PPP_LOG(error) << "PPPoEWorker " << pkt->session_id_ << " receive lcp disa req";
+				PPP_LOG(error) << "PPPoEWorker " << static_cast<uint16_t>(pkt->session_id_) << " receive lcp disa req";
 				break;
 			default:
 				break;
@@ -1436,7 +1436,7 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 				stats->invalid_ppp_chap_challenge_++;
 				return false;
 			}
-			PPP_LOG(info) << "PPPoEWorker receive chap handshake req with sid " << pkt->session_id_;
+			PPP_LOG(info) << "PPPoEWorker receive chap handshake req with sid " << static_cast<uint16_t>(pkt->session_id_);
 			opt_data = reinterpret_cast<unsigned char*>(lp+1);
 			if (get_chap_challenge(opt_data,
 				lp->len_ - sizeof(*lp),
@@ -1451,7 +1451,7 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 					stats->chap_response_send_ok_++;
 				} else {
 					stats->chap_response_send_fail_++;
-					PPP_LOG(error) << "PPPoEWorker send chap handshake resp with sid " << pkt->session_id_;
+					PPP_LOG(error) << "PPPoEWorker send chap handshake resp with sid " << static_cast<uint16_t>(pkt->session_id_);
 				}
 				delete chal_num;
 			} else {
@@ -1459,11 +1459,11 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 			}
 			break;
 		case CHAP_SUCESS:
-			PPP_LOG(info) << "PPPoEWorker receive chap sucess with sid " << pkt->session_id_;
+			PPP_LOG(info) << "PPPoEWorker receive chap sucess with sid " << static_cast<uint16_t>(pkt->session_id_);
 			stats->ppp_chap_success_++;
 			break;
 		case CHAP_FAILURE:
-			PPP_LOG(error) << "PPPoEWorker receive chap failed with sid " << pkt->session_id_;
+			PPP_LOG(error) << "PPPoEWorker receive chap failed with sid " << static_cast<uint16_t>(pkt->session_id_);
 			cache_.erase(pkt->session_id_); //update the cache info
 			stats->ppp_chap_failed_++;
 			break;
@@ -1483,7 +1483,7 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 				return false;
 			}
 			//send 0.0.0.0
-			PPP_LOG(info) << "PPPoEWorker receive ipcp with sid " << pkt->session_id_;
+			PPP_LOG(info) << "PPPoEWorker receive ipcp with sid " << static_cast<uint16_t>(pkt->session_id_);
 			stats->ppp_ipcp_recv_req_++;
 			if (!send_ipcp_req(frame->src_, pkt->session_id_, lp->id_)) {
 				PPP_LOG(error) << "PPPoEWorker send ipcp req failed";
@@ -1499,7 +1499,7 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 			stats->ppp_ipcp_send_ack_++;
 			break;
 		case CONFIG_ACK:
-			PPP_LOG(info) << "PPPoEWorker receive ipcp ack with sid " << pkt->session_id_;
+			PPP_LOG(info) << "PPPoEWorker receive ipcp ack with sid " << static_cast<uint16_t>(pkt->session_id_);
 			stats->ppp_ipcp_recv_ack_++;
 			deal_ipcp_ack(pkt->session_id_);
 			//todo:parse the ip dns, and enter next step, try to keep some net flow.
@@ -1512,7 +1512,7 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 			}
 			set_ipcp(pkt->session_id_, opt_list);
 			stats->ppp_ipcp_recv_nak_++;
-			PPP_LOG(info) << "PPPoEWorker receive ipcp nak with sid " << pkt->session_id_;
+			PPP_LOG(info) << "PPPoEWorker receive ipcp nak with sid " << static_cast<uint16_t>(pkt->session_id_);
 			if (!send_ipcp_req(frame->src_, pkt->session_id_, lp->id_)) {
 				PPP_LOG(error) << "PPPoEWorker send ipcp req failed";
 				return false;
@@ -1520,18 +1520,18 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char * data, unsigned int s
 			stats->ppp_ipcp_send_req_++;
 			break;
 		case CONFIG_REJECT:
-			PPP_LOG(error) << "PPPoEWorker receive ipcp reject with sid " << pkt->session_id_;
+			PPP_LOG(error) << "PPPoEWorker receive ipcp reject with sid " << static_cast<uint16_t>(pkt->session_id_);
 			stats->ppp_ipcp_recv_reject_++;
 			break;
 		case TERMINATE_REQUEST:
-			PPP_LOG(error) << "PPPoEWorker receive ipcp terminate req with sid " << pkt->session_id_;
+			PPP_LOG(error) << "PPPoEWorker receive ipcp terminate req with sid " << static_cast<uint16_t>(pkt->session_id_);
 			stats->ppp_ipcp_recv_term_req_++;
 			break;
 		case TERMINATE_ACK:
-			PPP_LOG(error) << "PPPoEWorker receive ipcp terminate ack with sid " << pkt->session_id_;
+			PPP_LOG(error) << "PPPoEWorker receive ipcp terminate ack with sid " << static_cast<uint16_t>(pkt->session_id_);
 			break;
 		case CODE_REJECT:
-			PPP_LOG(error) << "PPPoEWorker receive ipcp code reject with sid " << pkt->session_id_;
+			PPP_LOG(error) << "PPPoEWorker receive ipcp code reject with sid " << static_cast<uint16_t>(pkt->session_id_);
 
 			break;
 		default: break;

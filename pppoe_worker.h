@@ -120,8 +120,7 @@ enum {
 };
 
 struct pppoe_pkt {
-	unsigned char ver_:4,
-		type_:4;
+	unsigned char ver_:4,type_:4;
 	unsigned char code_;
 	unsigned short session_id_;
 	unsigned short length_;
