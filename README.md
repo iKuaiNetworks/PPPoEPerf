@@ -4,7 +4,7 @@ PPPoEPerf is a pppoe server performance test tool.
 
 ## Building
 
-mkdir -p build; cmake ..; sudo make install  
+mkdir -p build; cd build; cmake ..; sudo make install  
 
 ## Usage
 
