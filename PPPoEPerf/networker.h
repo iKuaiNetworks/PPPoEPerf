@@ -70,11 +70,8 @@ public:
 	};
 
 public:
-	NetUnit(unsigned int id,
-		unsigned int ip,
-		const char* srv,
-		const std::string& str
-		);
+	NetUnit(unsigned int id, unsigned int ip, const char* srv, const std::string& str);
+
 public:
 	std::shared_ptr<NetUnit::pkt_t>
 	send_internal();
@@ -113,12 +110,13 @@ public:
 		printf("TaskSend send frame tid: %ld and pid: %ld\n", (long)syscall( __NR_gettid ), (long)getpid());
 		int ec_snd;
 		do {
-			ec_snd  = sendto(sock_,
-						NULL,
-						0,
-						0, //use block send
-						(struct sockaddr*)&dst_addr_,
-						sizeof(struct sockaddr_ll));
+      ec_snd  = sendto(sock_,
+                       NULL,
+                       0,
+                       0, //use block send
+                       (struct sockaddr*)&dst_addr_,
+                       sizeof(struct sockaddr_ll));
+
 			if (ec_snd < 0) {
 				PPP_LOG(error) << "TaskSend sendto failed";
 				break;
@@ -127,10 +125,9 @@ public:
 				usleep(0);
 			} else {
 				PPP_LOG(trace) << "TaskSend send sucess";
-//				fflush(0);
+//			fflush(0);
 			}
-		}
-		while(!shutdown_);
+		} while (!shutdown_);
 
 		PPP_LOG(trace) << "TaskSend send end";
 	}
@@ -169,7 +166,8 @@ public:
 			memcpy(srv_addr_, srv, 6);
 			sendor_ = std::make_shared<TaskSend>(fd_sock_, if_idx_, srv);
 			auto th = std::make_shared<std::thread>(std::bind(&TaskSend::send_proc,
-									sendor_));
+                                                        sendor_));
+
 			thread_group_.push_back(th);
 		}
 	}
@@ -177,8 +175,7 @@ public:
 	void
 	claim_unit(unsigned int sid, unsigned int ip, const char* srv)
 	{
-		std::shared_ptr<NetUnit> nu = std::make_shared<NetUnit>
-						(sid, ip, srv, ifname_);
+		std::shared_ptr<NetUnit> nu = std::make_shared<NetUnit>(sid, ip, srv, ifname_);
 		PPP_LOG(trace) << "NetWorker claim_unit sid:" << sid;
 		units_[sid] = nu;
 	}
@@ -214,7 +211,8 @@ public:
 		}
 
 		auto th = std::make_shared<std::thread>(std::bind(&NetWorker::loop,
-									shared_from_this()));
+                                                      shared_from_this()));
+
 		thread_group_.push_back(th);
 	}
 
@@ -332,7 +330,7 @@ private:
 			timer_.expires_from_now(boost::posix_time::seconds(1));
 			timer_.async_wait(boost::bind(&NetWorker::task_fill, shared_from_this()));
 		} else {
-//			timer_.expires_from_now(boost::posix_time::milliseconds(2));
+//		timer_.expires_from_now(boost::posix_time::milliseconds(2));
 			timer_.expires_from_now(boost::posix_time::seconds(2));
 			timer_.async_wait(boost::bind(&NetWorker::task_fill, shared_from_this()));
 		}

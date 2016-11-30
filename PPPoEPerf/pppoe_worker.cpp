@@ -345,7 +345,7 @@ bool PPPoEWorker::send_lcp_config_req(const MacAddr server_mac, unsigned short s
 {
 	union {
 		struct {
-			struct eth_frame ef;
+			struct eth_frame  ef;
 			struct pppoe_pkt  ps;
 			struct ppp_header ph;
 			struct lcp_pkt    lp;
@@ -422,7 +422,7 @@ bool PPPoEWorker::send_lcp_config_ack(const MacAddr server_mac,
 {
 	union {
 		struct {
-			struct eth_frame ef;
+			struct eth_frame  ef;
 			struct pppoe_pkt  ps;
 			struct ppp_header ph;
 			struct lcp_pkt    lp;

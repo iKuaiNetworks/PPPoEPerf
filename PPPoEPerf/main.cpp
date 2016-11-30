@@ -157,15 +157,17 @@ int main(int argc, char **argv)
 	asio::io_service ios;
 	std::shared_ptr<PPPoEWorker> worker= std::make_shared<PPPoEWorker>(conf);
 	std::shared_ptr<NetWorker> net = std::make_shared<NetWorker>(test_config->interface_, ios);
-	worker->connect(PPPoEWorker::update_sig(), std::bind(&NetWorker::add_unit,
-								net,
-								std::placeholders::_1,
-								std::placeholders::_2,
-								std::placeholders::_3));
+	worker->connect(PPPoEWorker::update_sig(),
+                  std::bind(&NetWorker::add_unit,
+                            net,
+                            std::placeholders::_1,
+                            std::placeholders::_2,
+                            std::placeholders::_3));
 
-	worker->connect(PPPoEWorker::cancel_sig(), std::bind(&NetWorker::remove_unit,
-								net,
-								std::placeholders::_1));
+	worker->connect(PPPoEWorker::cancel_sig(),
+                  std::bind(&NetWorker::remove_unit,
+								            net,
+								            std::placeholders::_1));
 
 	worker->connect(PPPoEWorker::stop_sig(), std::bind(&NetWorker::stop, net));
 
@@ -195,5 +197,6 @@ int main(int argc, char **argv)
 		fs << stats->get_stats();
 		fs.close();
 	}
+
 	return 0;
 }
