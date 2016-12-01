@@ -1,4 +1,5 @@
-// ikuai is pleased to support the open source community by making PPPoEPerf available.
+// ikuai is pleased to support the open source community by making PPPoEPerf
+// available.
 // Copyright (C) 2016 ikuai. All rights reserved.
 
 // This file is part of PPPoEPerf.
@@ -19,7 +20,6 @@
 // ---
 // Author: Xiaopei Feng <xpfeng@ikuai8.com>
 
-
 #ifndef PPP_RANDOM_H_
 #define PPP_RANDOM_H_
 
@@ -29,17 +29,15 @@
 #include <boost/random/random_device.hpp>
 
 class PPPRandom {
-public:
-	PPPRandom() : gen(rd()), dis(INT_MIN, INT_MAX)
-	{}
+ public:
+  PPPRandom() : gen(rd()), dis(INT_MIN, INT_MAX) {}
 
-	int generate_random_int(void)
-	{  return dis(gen);  }
+  int generate_random_int(void) { return dis(gen); }
 
-private:
-	boost::random::random_device rd;
-	boost::random::mt19937 gen;
-	boost::random::uniform_int_distribution<> dis;
+ private:
+  boost::random::random_device rd;
+  boost::random::mt19937 gen;
+  boost::random::uniform_int_distribution<> dis;
 };
 
 #endif

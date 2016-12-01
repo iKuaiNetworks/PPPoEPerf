@@ -1,4 +1,5 @@
-// ikuai is pleased to support the open source community by making PPPoEPerf available.
+// ikuai is pleased to support the open source community by making PPPoEPerf
+// available.
 // Copyright (C) 2016 ikuai. All rights reserved.
 
 // This file is part of PPPoEPerf.
@@ -19,7 +20,6 @@
 // ---
 // Author: Xiaopei Feng <xpfeng@ikuai8.com>
 
-
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
@@ -32,16 +32,16 @@
 #include <boost/smart_ptr.hpp>
 #include <memory>
 
-
 namespace logging = boost::log;
 namespace sinks = boost::log::sinks;
 using namespace logging::trivial;
 
-typedef std::shared_ptr<sinks::synchronous_sink<sinks::text_file_backend>> sink_type;
+typedef std::shared_ptr<sinks::synchronous_sink<sinks::text_file_backend>>
+    sink_type;
 
-BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(ppp_logger, logging::sources::severity_logger_mt<severity_level>)
+BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(
+    ppp_logger, logging::sources::severity_logger_mt<severity_level>)
 
-#define PPP_LOG(lvl)        BOOST_LOG_SEV(ppp_logger::get(), lvl)
+#define PPP_LOG(lvl) BOOST_LOG_SEV(ppp_logger::get(), lvl)
 
 #endif /* LOGGER_HPP */
-
