@@ -6,9 +6,14 @@ PPPoEPerf is a pppoe server performance test tool.
 
 mkdir -p build  
 cd build  
-cmake ..   
+cmake ..  
 make  
 sudo make install  
+
+note  
+this program has dependency on boost log,system,program_option,random,regex you should boost first  
+if all that haved been install, and cmake also cannot found your boost path, you can specify the boost root with command  
+cmake -DBOOST_ROOT=path  
 
 ## Usage
 

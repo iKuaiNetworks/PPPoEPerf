@@ -10,7 +10,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -DBOOST_LOG_DYN_LINK -D_GNU_SOURCE -DSESS_BSIZ -std=c++0x -O2 -ldl -lssl -lpthread")
+set(CMAKE_CXX_FLAGS "-Wall -Wno-unused-local-typedefs -DBOOST_LOG_DYN_LINK -D_GNU_SOURCE -DSESS_BSIZ -std=c++0x -O2")
 set(CMAKE_CXX_COMPILER "g++")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
