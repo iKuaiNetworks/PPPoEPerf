@@ -25,7 +25,7 @@ find_package (OpenSSL REQUIRED COMPONENTS crypo)
 include_directories(/usr/include)
 include_directories(${Boost_INCLUDE_DIRS})
 
-if((Boost_FOUND)AND(OPENSSL_FOUND))
+if((Boost_FOUND) AND (OPENSSL_FOUND))
   add_subdirectory(PPPoEPerf)
 endif()
 

@@ -82,14 +82,13 @@ void initlog(const std::string &level) {
 
 int main(int argc, char **argv) {
   po::options_description desc("Allow options");
-  desc.add_options()("help,h", "print help messages")(
-      "config,c", po::value<std::string>(), "config file")(
-      "resend-timeout", po::value<unsigned int>()->default_value(20),
-      "Specify the resend timeout")(
-      "discovery", "Only discover the PPPoE servers")("ppp-stage",
-                                                      "Use ppp-stage")(
-      "terminate", "Terminate the session directly")("summary",
-                                                     "Show the summary stats");
+  desc.add_options()("help,h", "print help messages")
+      ("config,c", po::value<std::string>()->default_value("/etc/pppoe_perf/conf.json"), "config file")
+      ("resend-timeout", po::value<unsigned int>()->default_value(20),"Specify the resend timeout")
+      ("discovery", "Only discover the PPPoE servers")
+      ("ppp-stage", "Use ppp-stage")
+      ("terminate", "Terminate the session directly")
+      ("summary", "Show the summary stats");
 
   po::variables_map vm;
   try {
