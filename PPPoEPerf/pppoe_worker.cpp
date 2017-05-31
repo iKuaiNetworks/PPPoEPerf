@@ -161,6 +161,8 @@ void PPPoEWorker::loop() {
       timeout.tv_sec = 0;
       timeout.tv_usec = 1000;
     }
+
+    check_echo_expired();
   } while (start + config->duration_ >= cur);
   // to inform other thread to finish the thread
   struct tpacket_stats packet_stats;
@@ -522,6 +524,59 @@ bool PPPoEWorker::send_lcp_echo_reply(const MacAddr server_mac,
                                sizeof(dst));
 }
 
+bool PPPoEWorker::send_lcp_echo_request(const MacAddr server_mac, unsigned short session_id, unsigned char id)
+{
+  union {
+    struct {
+      struct eth_frame ef;
+      struct pppoe_pkt ps;
+      struct ppp_header ph;
+      struct lcp_pkt lp;
+      unsigned char opt_data[4];
+    };
+  } pkt;
+  struct sockaddr_ll dst;
+  unsigned short data_size = 0;
+
+  dst.sll_ifindex = src_if_index_;
+  dst.sll_halen = ETH_ALEN;
+  memcpy(dst.sll_addr, server_mac, sizeof(MacAddr));
+
+  // Fill ethernet
+  memcpy(pkt.ef.dst_, server_mac, sizeof(pkt.ef.dst_));
+  MacAddr addr;
+  get_local_mac(addr);
+  memcpy(pkt.ef.src_, addr, sizeof(src_if_mac_));
+  pkt.ef.type_ = htons(ETH_P_PPP_SES);
+
+  // Cacluate lenfth of LCP options
+  data_size = 4;  // magic number's size
+
+  // Fill PPPoE
+  pkt.ps.ver_ = PPPOE_DISC_VER;
+  pkt.ps.type_ = PPPOE_DISC_TYPE;
+  pkt.ps.code_ = PPPOE_SESS_CODE_DATA;
+  pkt.ps.session_id_ = htons(session_id);
+  pkt.ps.length_ = htons(data_size + sizeof(pkt.ph) + sizeof(pkt.lp));
+
+  // Fill PPP
+  pkt.ph.proto_ = htons(PPP_PROTO_LCP);
+
+  // Fill LCP
+  pkt.lp.code_ = LCP_CODE_ECHO_REQ;
+  pkt.lp.id_ = id;
+  pkt.lp.len_ = htons(data_size + sizeof(pkt.lp));
+
+  // Fill LCP options
+  int rand_num = random_ptr_->generate_random_int();
+  rand_num = htons(rand_num);
+  memcpy(pkt.opt_data, &rand_num, sizeof(int));
+
+  return sock_ptr_->send_frame(&pkt, sizeof(pkt), (struct sockaddr *)&dst,
+                               sizeof(dst));
+
+}
+
 bool PPPoEWorker::send_chap_reply(const MacAddr server_mac,
                                   unsigned short session_id, unsigned short id,
                                   unsigned char *chal, size_t chal_size) {
@@ -584,6 +639,62 @@ bool PPPoEWorker::send_chap_reply(const MacAddr server_mac,
                                pkt.data + 1 + MD5_DIGEST_LENGTH + name_.size() -
                                    reinterpret_cast<unsigned char *>(&pkt),
                                (struct sockaddr *)&dst, sizeof(dst));
+}
+
+bool PPPoEWorker::send_pap_request(const MacAddr server_mac,
+                                   unsigned short session_id, unsigned short id) {
+  union {
+    struct {
+      struct eth_frame ef;
+      struct pppoe_pkt ps;
+      struct ppp_header ph;
+      struct lcp_pkt pap;
+      unsigned char data[1480];
+    };
+  } pkt;
+
+  std::string acct = name();
+  std::string passwd = secret(acct);
+  cache_[session_id] = acct;
+  unsigned short data_size = acct.length() + passwd.length() + 1 + 1;
+ 
+  struct sockaddr_ll dst;
+  dst.sll_ifindex = src_if_index_;
+  dst.sll_halen = ETH_ALEN;
+  memcpy(dst.sll_addr, server_mac, sizeof(MacAddr));
+  
+  //fill ethernet
+  memcpy(pkt.ef.dst_, server_mac, sizeof(pkt.ef.dst_));
+  MacAddr addr;
+  get_local_mac(addr);
+  memcpy(pkt.ef.src_, addr, sizeof(src_if_mac_));
+
+  pkt.ef.type_ = htons(ETH_P_PPP_SES);
+  //fill PPPoE
+  pkt.ps.ver_ = PPPOE_DISC_VER;
+  pkt.ps.type_ = PPPOE_DISC_TYPE;
+  pkt.ps.code_ = PPPOE_SESS_CODE_DATA;
+  pkt.ps.session_id_ = htons(session_id);
+  pkt.ps.length_ = htons(sizeof(pkt.ph) + sizeof(pkt.pap) + data_size);
+
+  pkt.ph.proto_ = htons(PPP_PROTO_PWD_AUTH); 
+  
+  pkt.pap.code_ = PAP_REQUEST;
+  pkt.pap.id_ = id;
+  pkt.pap.len_ = htons(sizeof(pkt.pap) + data_size);
+
+  char s = acct.length();
+  memcpy(pkt.data, &s, 1);
+  memcpy(pkt.data + 1, acct.c_str(), acct.length());
+  s = passwd.length();
+  memcpy(pkt.data + 1 + acct.length(), &s, 1);
+  memcpy(pkt.data + 1 + acct.length() + 1, passwd.c_str(), passwd.length());
+
+  return sock_ptr_->send_frame(&pkt,
+                              pkt.data + 1  + acct.length() + 1 + passwd.length() - reinterpret_cast<unsigned char*>(&pkt),
+                              (struct sockaddr*)&dst,
+                              sizeof(dst)
+                              );
 }
 
 void PPPoEWorker::insert_expired_event(unsigned short sid,
@@ -856,14 +967,18 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char *data,
       }
 
       if (!server.svc_name_.size()) {
+/*
         PPP_LOG(error) << "PPPoEWorker pado package with no service name";
         stats->invalid_pado_++;
         return false;
+*/
       }
       if (!server.ac_name_.size()) {
+/*
         PPP_LOG(error) << "PPPoEWorker pado package with no ac name";
         stats->invalid_pado_++;
         return false;
+*/
       }
 
       stats->valid_pado_++;
@@ -920,9 +1035,11 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char *data,
       }
 
       if (!server.svc_name_.size()) {
+/*
         PPP_LOG(error) << "PPPoEWorker receive pads with no service name";
         stats->invalid_pads_++;
         return false;
+*/
       }
       stats->valid_pads_++;
       valid_sid_.insert(pkt->session_id_);
@@ -935,6 +1052,15 @@ bool PPPoEWorker::process_pppoe_disc_pkt(unsigned char *data,
           stats->padt_send_fail_++;
         }
       }
+
+      if (send_lcp_config_req(frame->src_, pkt->session_id_)) {
+            stats->lcp_config_req_send_ok_++;
+            PPP_LOG(info) << "PPPoEWorker send lcp config req with sid "
+                          << static_cast<uint16_t>(pkt->session_id_);
+      } else {
+            stats->lcp_config_req_send_fail_++;
+      }
+
       break;
     case PPPOE_DISC_CODE_PADT:
       stats->padt_rcv_++;
@@ -1026,13 +1152,17 @@ void PPPoEWorker::set_ppp_auth_method(unsigned short sid,
         unsigned short proto = *reinterpret_cast<const unsigned short *>(data);
         data += 2;
         proto = ntohs(proto);
-        if (PPPEntry::PPP_AUTH_PROTO_CHAP != proto) {
-          PPP_LOG(error) << "PPPoEWorker unsupport auth proto";
+        if (PPPEntry::PPP_AUTH_PROTO_CHAP != proto
+             && PPPEntry::PPP_AUTH_PROTO_PAP != proto) {
+          PPP_LOG(error) << "PPPoEWorker auth not support type";
           break;
         }
-        if (PPPEntry::PPP_AUTH_ALGO_MD5 != *data) {
-          PPP_LOG(error) << "PPPoEWorker unsupport algorithm";
-          break;
+
+        if (PPPEntry::PPP_AUTH_PROTO_CHAP == proto) {
+          if (PPPEntry::PPP_AUTH_ALGO_MD5 != *data) {
+            PPP_LOG(error) << "PPPoEWorker unsupport algorithm";
+            break;
+          }
         }
         it->auth_proto_ = proto;
         it->auth_algo_ = *data;
@@ -1041,6 +1171,17 @@ void PPPoEWorker::set_ppp_auth_method(unsigned short sid,
   } else {
     PPP_LOG(error) << "PPPoEWorker cannot find entry by id " << sid;
   }
+}
+
+int PPPoEWorker::auth_proto(unsigned int sid)
+{
+  PPPEntry pe(sid);
+  auto it = ppp_entry_.find(pe);
+  if (it  != ppp_entry_.end()) {
+    return (int)it->auth_proto_;
+  }
+
+  return -1;
 }
 
 void PPPoEWorker::set_ppp_entry_status(unsigned short sid, int new_status) {
@@ -1231,6 +1372,10 @@ void PPPoEWorker::deal_ipcp_ack(unsigned int sid) {
   unsigned int ip;
   memcpy(&ip, it->ipaddr_, 4);
   do_add(sid, ip, it->server_mac_);
+
+  
+  auto session = std::make_shared<PPPoEWorker::Session>(it->server_mac_, it->session_id_, it->ppp_id_);
+  lcp_echo_list_.push_back(session);
 }
 
 void PPPoEWorker::offline()  // online -> offline
@@ -1399,6 +1544,16 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char *data,
           stats->valid_lcp_config_ack_++;
           remove_expired_event(pkt->session_id_);
           set_ppp_entry_status(pkt->session_id_, PPP_STATUS_CONFIG_ACK);
+
+          if (auth_proto(pkt->session_id_) == PPP_PROTO_PWD_AUTH) {
+            if (send_pap_request(frame->src_, pkt->session_id_, lp->id_)) {
+              stats->pap_send_ok_++;
+              PPP_LOG(info) << "PPPOEWorker send pap request with sid "
+                            << static_cast<uint16_t>(pkt->session_id_);
+            } else {
+              PPP_LOG(error) << "PPPOEWorker send pap request failed"; 
+            }
+          }
           break;
         case LCP_CODE_ECHO_REQ:
           stats->lcp_echo_reqeust_rcv_++;
@@ -1422,8 +1577,6 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char *data,
             PPP_LOG(error) << "PPPoEWorker send lcp echo failed"
                            << static_cast<uint16_t>(pkt->session_id_);
           }
-          break;
-        case LCP_CODE_CONFIG_REJ:
           PPP_LOG(error) << "PPPoEWorker "
                          << static_cast<uint16_t>(pkt->session_id_)
                          << " receive lcp config rej";
@@ -1500,7 +1653,29 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char *data,
         default:
           break;
       }
+      break;
+    case PPP_PROTO_PWD_AUTH:
+      lp = reinterpret_cast<struct lcp_pkt *>(ph + 1);
+      lp->len_ = ntohs(lp->len_);
+      data_size =
+          size - sizeof(*frame) - sizeof(*pkt) - sizeof(*ph) - sizeof(*lp);
+      switch (lp->code_) {
+        case PAP_SUCESS:
+          PPP_LOG(info) << "PPPoEWorker receive pap sucess with sid "
+                        << static_cast<uint16_t>(pkt->session_id_);
+          stats->pap_response_ok_++;
 
+          if (auth_proto(pkt->session_id_) == PPP_PROTO_PWD_AUTH) {
+            if (!send_ipcp_req(frame->src_, pkt->session_id_, lp->id_)) {
+              PPP_LOG(error) << "PPPoEWorker send ipcp req failed";
+              return false;
+            }
+          }
+
+          break;
+        default:
+          PPP_LOG(info) << "PPPoEWorker receive pcap other msg";
+      }
       break;
     case PPP_PROTO_IPCP:
       lp = reinterpret_cast<struct lcp_pkt *>(ph + 1);
@@ -1519,12 +1694,14 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char *data,
           PPP_LOG(info) << "PPPoEWorker receive ipcp with sid "
                         << static_cast<uint16_t>(pkt->session_id_);
           stats->ppp_ipcp_recv_req_++;
-          if (!send_ipcp_req(frame->src_, pkt->session_id_, lp->id_)) {
-            PPP_LOG(error) << "PPPoEWorker send ipcp req failed";
-            return false;
+          if (auth_proto(pkt->session_id_) != PPP_PROTO_PWD_AUTH) {
+            if (!send_ipcp_req(frame->src_, pkt->session_id_, lp->id_)) {
+              PPP_LOG(error) << "PPPoEWorker send ipcp req failed";
+              return false;
+            }
+            stats->ppp_ipcp_send_req_++;
+            set_ipcp(pkt->session_id_, opt_list);
           }
-          stats->ppp_ipcp_send_req_++;
-          set_ipcp(pkt->session_id_, opt_list);
           // send server's ack
           if (!send_ipcp_ack(frame->src_, pkt->session_id_, lp->id_)) {
             PPP_LOG(error) << "PPPoEWorker send ipcp ack failed";
@@ -1586,3 +1763,17 @@ bool PPPoEWorker::process_pppoe_session_pkt(unsigned char *data,
 
   return true;
 }
+
+void PPPoEWorker::check_echo_expired()
+{
+  uint32_t now = (uint32_t)time(NULL);
+  for (auto iter = lcp_echo_list_.begin(); iter != lcp_echo_list_.end(); ++iter) {
+    if (now - (*iter)->last_echo_stamp > 20) {
+      if (send_lcp_echo_request((*iter)->svc_mac, (*iter)->sid, (*iter)->id)) {
+        PPP_LOG(info) << "PPPoEWorker send lcp echo request with sid " << (*iter)->sid;
+      }
+      (*iter)->last_echo_stamp = now;
+    }
+  }
+}
+

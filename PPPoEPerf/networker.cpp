@@ -203,11 +203,13 @@ std::shared_ptr<NetUnit::pkt_t> NetUnit::send_internal() {
   iphdr.ip_off = htons(0x4000);
   iphdr.ip_ttl = 255;
   iphdr.ip_p = IPPROTO_UDP;
+
+  PPP_LOG(info) << "NetUnit create ip packet src ip: " << ip_;
   if (inet_pton(AF_INET, ip_.c_str(), &(iphdr.ip_src)) != 1) {
     PPP_LOG(error) << "NetUnit inet_pton failed";
     return std::make_shared<NetUnit::pkt_t>();
   }
-  if (inet_pton(AF_INET, "192.200.200.3", &(iphdr.ip_dst)) != 1) {
+  if (inet_pton(AF_INET, "192.168.100.1", &(iphdr.ip_dst)) != 1) {
     PPP_LOG(error) << "NetUnit inet_pton failed";
     return std::make_shared<NetUnit::pkt_t>();
   }

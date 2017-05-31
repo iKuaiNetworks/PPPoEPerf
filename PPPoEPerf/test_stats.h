@@ -160,6 +160,8 @@ class TestStats {
   unsigned int lcp_echo_reply_send_fail_;
   unsigned int chap_response_send_ok_;
   unsigned int chap_response_send_fail_;
+  unsigned int pap_send_ok_;
+  unsigned int pap_response_ok_;
 
   unsigned int lcp_config_req_rcv_;
   unsigned int valid_lcp_config_req_;

@@ -35,6 +35,7 @@
 #include <netinet/in.h>
 #include <netinet/ether.h>
 #include <unistd.h>
+#include <string.h>
 #include <iomanip>
 
 #include <iostream>
@@ -119,6 +120,11 @@ enum {
   CHAP_RESPONSE = 2,
   CHAP_SUCESS = 3,
   CHAP_FAILURE = 4,
+};
+
+enum {
+  PAP_REQUEST = 1,
+  PAP_SUCESS = 2,
 };
 
 enum {
@@ -268,6 +274,7 @@ struct PPPEntry {
   enum {
     PPP_AUTH_PROTO_NULL = 0,
     PPP_AUTH_PROTO_CHAP = 0xC223,
+    PPP_AUTH_PROTO_PAP = 0xC023,
   };
 
   enum {
@@ -372,6 +379,21 @@ class PPPoEWorker : public std::enable_shared_from_this<PPPoEWorker> {
   struct cancel_sig {};
   struct stop_sig {};
 
+  struct Session {
+    Session(const MacAddr mac, unsigned short session, unsigned char cid)
+      : sid(session)
+      , id (cid)
+      , last_echo_stamp(0)
+    {
+      memcpy(svc_mac, mac, MAC_ADDR_LEN);
+    }
+
+    MacAddr svc_mac;
+    unsigned short sid;
+    unsigned char id;
+    uint64_t last_echo_stamp;
+  };
+
  public:
   typedef signals::signal<void(unsigned int sid, unsigned int ip,
                                const MacAddr &mac)> update_signal;
@@ -420,9 +442,15 @@ class PPPoEWorker : public std::enable_shared_from_this<PPPoEWorker> {
                            unsigned char id, LCPOptList &opt_list);
   bool send_lcp_echo_reply(const MacAddr server_mac, unsigned short session_id,
                            unsigned char id);
+
+  bool send_lcp_echo_request(const MacAddr server_mac, unsigned short sessid, unsigned char id);
+
   bool send_chap_reply(const MacAddr server_mac, unsigned short session_id,
                        unsigned short id, unsigned char *chal,
                        size_t chal_size);
+
+  bool send_pap_request(const MacAddr server_mac, unsigned short session_id,
+                        unsigned short id);
 
   void recv_pkt(void);
   void process_expired_events(time_t cur_time);
@@ -458,9 +486,11 @@ class PPPoEWorker : public std::enable_shared_from_this<PPPoEWorker> {
 
   void do_stop() { stop_(); }
 
+  void check_echo_expired();
+
   std::string name();
   std::string secret(const std::string &usr);
-
+  int auth_proto(unsigned int sid);
   void deal_ipcp_ack(unsigned int sid);
 
   void offline();
@@ -501,6 +531,7 @@ class PPPoEWorker : public std::enable_shared_from_this<PPPoEWorker> {
   uint32_t login_period_;
   uint16_t login_rate_;
   std::unordered_set<uint16_t> active_padt_;
+  std::vector<std::shared_ptr<Session> > lcp_echo_list_;
 };
 
 typedef std::shared_ptr<PPPoEWorker> PPPoEWorkerPtr;

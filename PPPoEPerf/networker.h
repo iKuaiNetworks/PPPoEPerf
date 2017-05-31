@@ -38,6 +38,8 @@
 #include <thread>
 #include <string>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <memory>
 
 #include "pppoe_worker.h"
@@ -107,14 +109,12 @@ struct TaskSend {
                       (struct sockaddr*)&dst_addr_, sizeof(struct sockaddr_ll));
 
       if (ec_snd < 0) {
-        PPP_LOG(error) << "TaskSend sendto failed";
-        break;
+        PPP_LOG(error) << "TaskSend sendto failed, erro: " << strerror(errno);
+        usleep(10);
       } else if (ec_snd == 0) {
-        PPP_LOG(trace) << "TaskSend sendto zero";
-        usleep(0);
+        usleep(10);
       } else {
         PPP_LOG(trace) << "TaskSend send sucess";
-        //			fflush(0);
       }
     } while (!shutdown_);
 
